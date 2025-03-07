@@ -53,7 +53,7 @@ jobs:
         cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/moby
         export PREFIX=/data/docker/android
         make binary
-        sudo install -Dm 0700 bundles/binary-daemon/dockerd $PREFIX/bin/libexec/dockerd-dev
+        #sudo install -Dm 0700 bundles/binary-daemon/dockerd $PREFIX/bin/libexec/dockerd-dev
         sudo install -Dm 0700 bundles/binary-daemon/docker-init $PREFIX/bin/libexec/docker-init
         sudo install -Dm 0700 bundles/binary-daemon/docker-proxy $PREFIX/bin/libexec/docker-proxy
         
