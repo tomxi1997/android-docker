@@ -59,7 +59,9 @@ jobs:
         
     
 
-    - name: build static docker demon                                               run: |                                                                          cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/moby
+    - name: build static docker demon                                              
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/moby 
         export PREFIX=/data/docker/android
         make binary                                                                   sudo install -Dm 0700 bundles/binary-daemon/dockerd $PREFIX/bin/libexec/dockerd-dev                                                                         sudo install -Dm 0700 bundles/binary-daemon/docker-init $PREFIX/bin/libexec/docker-init
         sudo install -Dm 0700 bundles/binary-daemon/docker-proxy $PREFIX/bin/libexec/docker-proxy
@@ -67,7 +69,8 @@ jobs:
 
 
     - name: build static containerd
-      run: |                                                                          cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/containerd
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/containerd
         export PREFIX=/data/docker/android
         make EXTRA_FLAGS="-buildmode pie" EXTRA_LDFLAGS='-linkmode external -extldflags "-fno-PIC -static" BUILDTAGS="netgo osusergo no_btrfs static_build" -j8
         DESTDIR=$PREFIX sudo make install
