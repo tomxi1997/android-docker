@@ -1,0 +1,99 @@
+name: Build static docker
+on:
+  watch:
+    types: [started]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build static docker by ${{ github.actor }}
+    runs-on: ubuntu-22.04-arm
+    if: github.event.repository.owner.id == github.event.sender.id
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+      CI: "true"
+    steps:
+    - uses: actions/checkout@v4
+    - name: Prepare Configuration
+      run: |
+        echo "ENABLE_NETHUNTER=$(cat $CONFIG_ENV | grep -w "ENABLE_NETHUNTER" | head -n 1 | cut -d "=" -f 2)" >> $GITHUB_ENV
+        
+    - name: Set swap to 10G
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 10
+
+    - name: Setup build environment
+      run: |
+        echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "DEVICE=$(echo ${{ env.KERNEL_CONFIG }} | sed 's!vendor/!!;s/_defconfig//;s/_user//;s/-perf//')" >> $GITHUB_ENV
+        sudo apt-get update
+        sudo apt install -y curl vim git gcc clang crossbuild-essential-arm64 
+        mkdir -p $GITHUB_WORKSPACE/kernel_workspace
+        cd $GITHUB_WORKSPACE/kernel_workspace
+        git clone https://github.com/tomxi1997/android-docker.git
+
+  
+
+    - name: build static docker-cli 
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/cli
+        export PREFIX=/data/docker/android
+        docker buildx bake --set binary.platform=linux/arm64 
+        sudo install -Dm 0700 build/docker-linux-arm64 $PREFIX/bin/docker
+        
+          
+        
+
+    - name: build static docker demon
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/moby
+        export PREFIX=/data/docker/android
+        make binary
+        sudo install -Dm 0700 bundles/binary-daemon/dockerd $PREFIX/bin/libexec/dockerd-dev
+        sudo install -Dm 0700 bundles/binary-daemon/docker-init $PREFIX/bin/libexec/docker-init
+        sudo install -Dm 0700 bundles/binary-daemon/docker-proxy $PREFIX/bin/libexec/docker-proxy
+        
+    
+
+    - name: build static docker demon                                               run: |                                                                          cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/moby
+        export PREFIX=/data/docker/android
+        make binary                                                                   sudo install -Dm 0700 bundles/binary-daemon/dockerd $PREFIX/bin/libexec/dockerd-dev                                                                         sudo install -Dm 0700 bundles/binary-daemon/docker-init $PREFIX/bin/libexec/docker-init
+        sudo install -Dm 0700 bundles/binary-daemon/docker-proxy $PREFIX/bin/libexec/docker-proxy
+
+
+
+    - name: build static containerd
+      run: |                                                                          cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/containerd
+        export PREFIX=/data/docker/android
+        make EXTRA_FLAGS="-buildmode pie" EXTRA_LDFLAGS='-linkmode external -extldflags "-fno-PIC -static" BUILDTAGS="netgo osusergo no_btrfs static_build" -j8
+        DESTDIR=$PREFIX sudo make install
+
+
+    - name: build static runc
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/runc
+        export PREFIX=/data/docker/android
+        make binary
+        DESTDIR=$PREFIX sudo make install
+        
+        
+
+
+        
+    - name: add docker tar
+      run: |
+        sudo bash -c 'cp -R /home/runner/work/android-docker/android-docker/kernel_workspace/android-docker/data /'
+        sudo bash -c 'cd /data && tar -czvf docker.tar.xz docker && cp docker.tar.xz /home/runner/work/android-docker/android-docker/kernel_workspace'
+    
+
+    - name: Upload docker binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-android-arm64
+        path: kernel_workspace/docker.tar.xz
+
+  
