@@ -63,7 +63,7 @@ jobs:
         cd $GITHUB_WORKSPACE/kernel_workspace/android-docker/containerd
         export PREFIX=/data/docker/android
         make EXTRA_FLAGS="-buildmode pie" EXTRA_LDFLAGS='-linkmode external -extldflags "-fno-PIC -static" BUILDTAGS="netgo osusergo no_btrfs static_build" -j8
-        DESTDIR=$PREFIX sudo make install
+      #DESTDIR=$PREFIX sudo make install
 
 
     - name: build static runc
